@@ -2,36 +2,68 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const app = express();
-const db = require('./bd');
+const uniqid = require('uniqid'); 
+const ForerunnerDB = require("forerunnerdb");
+
+// setup database
+const fdb = new ForerunnerDB();
+
+const db = fdb.db("FCCCourse");
+const collection = db.collection("Urls", {capped: true, size: 20});
 
 // Basic Configuration
 const port = process.env.PORT || 3000;
 
-const collection = db.collection("Urls", {capped: true, size: 20});
-
 app.use(cors());
 
 app.use('/public', express.static(`${process.cwd()}/public`));
+app.use(express.urlencoded());
+app.use(express.json());
 
 app.get('/', function(req, res) {
   res.sendFile(process.cwd() + '/views/index.html');
 });
 
-app.get('/test-create', (req, res) => {
+
+// routes here
+app.post('/api/shorturl', (req, res) => {
+  const { url } = req.body;
+  const _id = uniqid();
+  const code = uniqid.time();
   collection.insert([{
-    _id: 1,
-    name: 'test'
+    _id,
+    url,
+    code
   }])
-  res.json({ success: 'success' });
+  res.json({ 
+    original_url: url,
+    short_url: code
+  });
 })
 
-app.get('/read', (req, res) => {
-  const response = collection.find({}, {
-    $page: 0,
-    $limit: 10
+app.get('/find', (req, res) => {
+  const code = req.query.code || '';
+  const result = collection.find({
+    code:{
+      $eeq: code,
+    }
   })
-  console.log(response);
-  res.json({ success: JSON.stringify(response) });
+  res.json({ success: JSON.stringify(result) });
+})
+
+app.get('/api/shorturl/:code?', (req, res) => {
+  const code = req.params.code || '';
+  const result = collection.find({
+    code:{
+      $eeq: code,
+    }
+  })
+
+  if(result?.length){
+    const record = result[0];
+    const url = record.url;
+    res.redirect(url);
+  }
 })
 
 // Your first API endpoint
