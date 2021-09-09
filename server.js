@@ -4,6 +4,8 @@ const cors = require('cors');
 const app = express();
 const uniqid = require('uniqid'); 
 const ForerunnerDB = require("forerunnerdb");
+const URL = require("url").URL;
+
 
 // setup database
 const fdb = new ForerunnerDB();
@@ -13,6 +15,16 @@ const collection = db.collection("Urls", {capped: true, size: 20});
 
 // Basic Configuration
 const port = process.env.PORT || 3000;
+
+const stringIsAValidUrl = (s) => {
+  try {
+    new URL(s);
+    return true;
+  } catch (err) {
+    return false;
+  }
+};
+
 
 app.use(cors());
 
@@ -28,6 +40,9 @@ app.get('/', function(req, res) {
 // routes here
 app.post('/api/shorturl', (req, res) => {
   const { url } = req.body;
+  if(!stringIsAValidUrl(url)){
+    res.json({ error: 'invalid url' });
+  }
   const _id = uniqid();
   const code = uniqid.time();
   collection.insert([{
@@ -62,7 +77,11 @@ app.get('/api/shorturl/:code?', (req, res) => {
   if(result?.length){
     const record = result[0];
     const url = record.url;
-    res.redirect(url);
+    if(stringIsAValidUrl(url)){
+      res.redirect(url);
+    }else{
+      res.json({ error: 'invalid url' });
+    }
   }
 })
 
