@@ -42,6 +42,7 @@ app.post('/api/shorturl', (req, res) => {
   const { url } = req.body;
   if(!stringIsAValidUrl(url)){
     res.json({ error: 'invalid url' });
+    return;
   }
   const _id = uniqid();
   const code = uniqid.time();
