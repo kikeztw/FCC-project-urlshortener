@@ -68,11 +68,9 @@ app.get('/api/shorturl/:code?', (req, res) => {
   if(result?.length){
     const record = result[0];
     const url = record.url;
-    if(stringIsAValidUrl(url)){
-      res.redirect(url);
-    }else{
-      res.json({ error: 'invalid url' });
-    }
+    res.redirect(url);
+  }else{
+    res.status(500).json('Url not found')
   }
 })
 
