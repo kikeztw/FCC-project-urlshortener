@@ -4,7 +4,7 @@ const cors = require('cors');
 const app = express();
 const uniqid = require('uniqid'); 
 const ForerunnerDB = require("forerunnerdb");
-const URL = require("url").URL;
+const validUrl = require('valid-url');
 
 
 // setup database
@@ -15,16 +15,6 @@ const collection = db.collection("Urls", {capped: true, size: 20});
 
 // Basic Configuration
 const port = process.env.PORT || 3000;
-
-const stringIsAValidUrl = (s) => {
-  try {
-    new URL(s);
-    return true;
-  } catch (err) {
-    return false;
-  }
-};
-
 
 app.use(cors());
 
@@ -40,21 +30,21 @@ app.get('/', function(req, res) {
 // routes here
 app.post('/api/shorturl', (req, res) => {
   const { url } = req.body;
-  if(!stringIsAValidUrl(url)){
+  if(!validUrl.isWebUri(url)){
     res.json({ error: 'invalid url' });
-    return;
+  }else{
+    const _id = uniqid();
+    const code = uniqid.time();
+    collection.insert([{
+      _id,
+      url,
+      code
+    }])
+    res.json({ 
+      original_url: url,
+      short_url: code
+    });
   }
-  const _id = uniqid();
-  const code = uniqid.time();
-  collection.insert([{
-    _id,
-    url,
-    code
-  }])
-  res.json({ 
-    original_url: url,
-    short_url: code
-  });
 })
 
 app.get('/find', (req, res) => {
